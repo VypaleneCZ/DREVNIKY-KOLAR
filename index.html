@@ -229,6 +229,12 @@
 
       <div class="section">
         <h3>Sekce 3 · Střecha</h3>
+        <div class="muted" style="margin-bottom:8px">Typ střechy</div>
+        <div class="toggle" id="roofStyle" style="margin-bottom:10px">
+          <button data-roof-style="gable" class="active">Sedlová</button>
+          <button data-roof-style="mono-back">Rovná · spád dozadu</button>
+          <button data-roof-style="mono-front">Rovná · spád dopředu</button>
+        </div>
         <div class="toggle" id="roofColor">
           <button data-roof-color="anthracite" class="active">Antracit</button>
           <button data-roof-color="brick">Cihlová</button>
@@ -270,6 +276,7 @@
     const swatches = byId('swatches');
     const woodPreview = byId('woodPreview');
     const roofColor = byId('roofColor');
+    const roofStyle = byId('roofStyle');
     const fullWalls = byId('fullWalls');
     const shelves = byId('shelves');
     const gutter = byId('gutter');
@@ -534,6 +541,7 @@
       const frameW = 0.05;
       const baseLift = 0.10;
       const roofRise = Math.max(0.28, D * 0.34);
+      const monoRise = Math.max(0.09, D * 0.12);
       const roofOverhang = 0.12;
       const floorMat = new THREE.MeshStandardMaterial({ color: '#4b3426', roughness: 0.84, metalness: 0.04 });
 
@@ -584,15 +592,22 @@
       });
 
       // horní nosníky
+      const monoToBack = cfg.roofStyle === 'mono-back';
+      const monoToFront = cfg.roofStyle === 'mono-front';
+      const topFrontY = baseLift + H + (monoToFront ? monoRise : 0);
+      const topBackY = baseLift + H + (monoToBack ? monoRise : 0);
       const topFront = new THREE.Mesh(new THREE.BoxGeometry(L + frameW, frameW, frameW), zincMat);
-      topFront.position.set(0, baseLift + H, -D / 2);
+      topFront.position.set(0, topFrontY, -D / 2);
       parts.frame.add(topFront);
       const topBack = topFront.clone();
       topBack.position.z = D / 2;
+      topBack.position.y = topBackY;
       parts.frame.add(topBack);
-      const ridgeBeam = new THREE.Mesh(new THREE.BoxGeometry(L + 0.14, frameW, frameW), zincMat);
-      ridgeBeam.position.set(0, baseLift + H + roofRise - 0.03, 0);
-      parts.frame.add(ridgeBeam);
+      if (cfg.roofStyle === 'gable') {
+        const ridgeBeam = new THREE.Mesh(new THREE.BoxGeometry(L + 0.14, frameW, frameW), zincMat);
+        ridgeBeam.position.set(0, baseLift + H + roofRise - 0.03, 0);
+        parts.frame.add(ridgeBeam);
+      }
 
       // zadní smrkové latě po jednotlivých polích
       const slatGap = cfg.fullWalls ? 0.008 : profile.slatGap;
@@ -723,7 +738,7 @@
         }
       });
 
-      // sedlová střecha (bližší referenci)
+      // střecha: sedlová / rovná se spádem
       const roofMat = new THREE.MeshStandardMaterial({
         map: createRoofTexture('shingle', cfg.roofColor === 'anthracite' || cfg.roofColor === 'black' ? 'dark' : 'brick'),
         color: roofPalette[cfg.roofColor],
@@ -732,49 +747,61 @@
       });
       const roofHalfDepth = D / 2 + roofOverhang;
       const roofLen = L + roofOverhang * 2;
-      const roofSlope = Math.atan2(roofRise, roofHalfDepth);
-      const roofPanelGeo = new THREE.BoxGeometry(roofLen, 0.02, roofHalfDepth + 0.03);
 
-      const roofLeft = new THREE.Mesh(roofPanelGeo, roofMat);
-      roofLeft.position.set(0, baseLift + H + roofRise / 2, -roofHalfDepth / 2 + 0.01);
-      roofLeft.rotation.x = -roofSlope;
-      roofLeft.castShadow = true;
-      parts.roof.add(roofLeft);
+      if (cfg.roofStyle === 'gable') {
+        const roofSlope = Math.atan2(roofRise, roofHalfDepth);
+        const roofPanelGeo = new THREE.BoxGeometry(roofLen, 0.02, roofHalfDepth + 0.03);
 
-      const roofRight = new THREE.Mesh(roofPanelGeo, roofMat);
-      roofRight.position.set(0, baseLift + H + roofRise / 2, roofHalfDepth / 2 - 0.01);
-      roofRight.rotation.x = roofSlope;
-      roofRight.castShadow = true;
-      parts.roof.add(roofRight);
+        const roofLeft = new THREE.Mesh(roofPanelGeo, roofMat);
+        roofLeft.position.set(0, baseLift + H + roofRise / 2, -roofHalfDepth / 2 + 0.01);
+        roofLeft.rotation.x = -roofSlope;
+        roofLeft.castShadow = true;
+        parts.roof.add(roofLeft);
 
-      // trojúhelníkové štíty
-      [-L / 2, L / 2].forEach((xPos) => {
-        const gableShape = new THREE.Shape();
-        gableShape.moveTo(-roofHalfDepth, baseLift + H);
-        gableShape.lineTo(0, baseLift + H + roofRise);
-        gableShape.lineTo(roofHalfDepth, baseLift + H);
-        gableShape.lineTo(-roofHalfDepth, baseLift + H);
-        const gable = new THREE.Mesh(
-          new THREE.ShapeGeometry(gableShape),
-          new THREE.MeshStandardMaterial({ color: '#9aa6ad', roughness: 0.7, metalness: 0.65, side: THREE.DoubleSide })
-        );
-        gable.position.set(xPos + (xPos < 0 ? 0.001 : -0.001), 0, 0);
-        gable.rotation.y = Math.PI / 2;
-        parts.roof.add(gable);
+        const roofRight = new THREE.Mesh(roofPanelGeo, roofMat);
+        roofRight.position.set(0, baseLift + H + roofRise / 2, roofHalfDepth / 2 - 0.01);
+        roofRight.rotation.x = roofSlope;
+        roofRight.castShadow = true;
+        parts.roof.add(roofRight);
 
-        if (profile.gableAccent && xPos < 0) {
-          const accentA = new THREE.Mesh(new THREE.BoxGeometry(roofHalfDepth * 0.8, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: '#2f3539', roughness: 0.8 }));
-          accentA.position.set(xPos + 0.01, baseLift + H + roofRise * 0.62, -0.02);
-          accentA.rotation.y = Math.PI / 2;
-          accentA.rotation.z = 0.42;
-          parts.roof.add(accentA);
+        // trojúhelníkové štíty
+        [-L / 2, L / 2].forEach((xPos) => {
+          const gableShape = new THREE.Shape();
+          gableShape.moveTo(-roofHalfDepth, baseLift + H);
+          gableShape.lineTo(0, baseLift + H + roofRise);
+          gableShape.lineTo(roofHalfDepth, baseLift + H);
+          gableShape.lineTo(-roofHalfDepth, baseLift + H);
+          const gable = new THREE.Mesh(
+            new THREE.ShapeGeometry(gableShape),
+            new THREE.MeshStandardMaterial({ color: '#9aa6ad', roughness: 0.7, metalness: 0.65, side: THREE.DoubleSide })
+          );
+          gable.position.set(xPos + (xPos < 0 ? 0.001 : -0.001), 0, 0);
+          gable.rotation.y = Math.PI / 2;
+          parts.roof.add(gable);
 
-          const accentB = accentA.clone();
-          accentB.position.y = baseLift + H + roofRise * 0.8;
-          accentB.rotation.z = -0.42;
-          parts.roof.add(accentB);
-        }
-      });
+          if (profile.gableAccent && xPos < 0) {
+            const accentA = new THREE.Mesh(new THREE.BoxGeometry(roofHalfDepth * 0.8, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: '#2f3539', roughness: 0.8 }));
+            accentA.position.set(xPos + 0.01, baseLift + H + roofRise * 0.62, -0.02);
+            accentA.rotation.y = Math.PI / 2;
+            accentA.rotation.z = 0.42;
+            parts.roof.add(accentA);
+
+            const accentB = accentA.clone();
+            accentB.position.y = baseLift + H + roofRise * 0.8;
+            accentB.rotation.z = -0.42;
+            parts.roof.add(accentB);
+          }
+        });
+      } else {
+        const monoDepth = D + roofOverhang * 2;
+        const monoSlope = Math.atan2(monoRise, monoDepth);
+        const monoGeo = new THREE.BoxGeometry(roofLen, 0.022, monoDepth + 0.04);
+        const mono = new THREE.Mesh(monoGeo, roofMat);
+        mono.position.set(0, baseLift + H + monoRise / 2 + 0.02, 0);
+        mono.rotation.x = cfg.roofStyle === 'mono-back' ? -monoSlope : monoSlope;
+        mono.castShadow = true;
+        parts.roof.add(mono);
+      }
 
       if (cfg.shelves) {
         for (let bay = 0; bay < bays; bay++) {
@@ -862,6 +889,7 @@
       depth: 73,
       height: 220,
       roofColor: 'anthracite',
+      roofStyle: 'gable',
       fullWalls: false,
       shelves: false,
       gutter: false,
@@ -884,6 +912,7 @@
       if (config.gutter) price += config.length * 20;
       const roofExtra = { anthracite: 0, brick: 0, black: 0, lightbrown: 380, darkbrown: 520 };
       price += roofExtra[config.roofColor] ?? 0;
+      if (config.roofStyle !== 'gable') price += 950;
       return Math.round(price / 10) * 10;
     }
 
@@ -898,6 +927,13 @@
     height.oninput = () => { config.height = Number(height.value); heiVal.textContent = config.height; refresh(); };
 
     design.oninput = () => { config.design = design.value; refresh(); };
+
+    roofStyle.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+      roofStyle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      config.roofStyle = btn.dataset.roofStyle;
+      refresh();
+    });
 
     roofColor.querySelectorAll('button').forEach(btn => btn.onclick = () => {
       roofColor.querySelectorAll('button').forEach(b => b.classList.remove('active'));
