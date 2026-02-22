@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Konfigurátor | Dřevníky Kolář</title>
+  <style>
+    :root {
+      --bg: #dde3df;
+      --ui-dark: #1f2428;
+      --ui-panel: #ffffffee;
+      --ui-muted: #6e777f;
+      --ui-line: #d6dce0;
+      --ui-accent: #9a7a55;
+      --ui-cta: #2f6f50;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at 18% 10%, #f8f9f7, var(--bg) 50%, #cdd7d2 100%);
+      color: #161b1f;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 14px;
+    }
+    .device {
+      width: min(1600px, 97vw);
+      height: min(920px, 96vh);
+      border-radius: 24px;
+      border: 1px solid #cdd4d8;
+      background: #eef2ef;
+      box-shadow: 0 26px 70px #5f6a6630, inset 0 0 0 1px #ffffffb0;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      overflow: hidden;
+      position: relative;
+    }
+    .brand {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffffffea;
+      border: 1px solid var(--ui-line);
+      border-radius: 12px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+    }
+    .logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(155deg, #2b3033, #75818a);
+      position: relative;
+    }
+    .logo::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border: 2px solid #f8faf9;
+      border-top: 0;
+    }
+    #stage { position: relative; }
+    #scene { width: 100%; height: 100%; display: block; }
+
+    .floating-note {
+      position: absolute;
+      z-index: 7;
+      background: #fffffff1;
+      border: 1px solid var(--ui-line);
+      box-shadow: 0 8px 24px #4f595222;
+      border-radius: 11px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #293238;
+      pointer-events: none;
+    }
+    .floating-note.small { font-size: 12px; }
+
+    aside {
+      border-left: 1px solid var(--ui-line);
+      background: var(--ui-panel);
+      padding: 18px;
+      overflow-y: auto;
+    }
+    .panel-head {
+      margin: 0 0 14px;
+      background: #1f2428;
+      color: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      font-weight: 650;
+      font-size: 14px;
+      letter-spacing: 0.2px;
+    }
+    .panel-head span { color: #dcb994; }
+    .section {
+      border: 1px solid var(--ui-line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .section h3 { margin: 0 0 10px; font-size: 14px; }
+    .muted { color: var(--ui-muted); font-size: 12px; }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      border: 1px solid var(--ui-line);
+      border-radius: 10px;
+      padding: 9px 8px;
+      background: #f5f7f8;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button.active {
+      background: #212a2f;
+      color: #fff;
+      border-color: #212a2f;
+    }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    label { display: block; font-size: 12px; color: #59636b; margin: 8px 0 4px; }
+    input[type="range"] { width: 100%; accent-color: #27343c; }
+
+    .wood-preview {
+      height: 44px;
+      border-radius: 8px;
+      border: 1px solid #ccd4d8;
+      background-size: cover;
+      margin-bottom: 8px;
+    }
+    .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .swatch {
+      border: 1px solid #c8d0d4;
+      border-radius: 9px;
+      background: #fff;
+      padding: 4px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 11px;
+    }
+    .sample {
+      height: 22px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      border: 1px solid #ffffff90;
+      background-size: cover;
+    }
+    .swatch.active { outline: 2px solid #2f5b77; }
+    .logo-mark {
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      color: #e7ecef;
+      position: absolute;
+      bottom: 5px;
+      left: 7px;
+      font-weight: 700;
+    }
+
+    .toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .checkbox { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-size: 13px; }
+
+    .summary {
+      background: linear-gradient(145deg, #1e2327, #2b3136);
+      color: #fff;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .price { font-size: 28px; font-weight: 700; margin: 4px 0 8px; }
+    .cta {
+      width: 100%;
+      background: linear-gradient(160deg, #347454, #2b6348);
+      color: #fff;
+      border: 0;
+      padding: 11px;
+      border-radius: 10px;
+      font-weight: 650;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="device">
+    <div class="brand"><div class="logo"><div class="logo-mark">DK</div></div><strong>3D Konfigurátor dřevníků</strong></div>
+
+    <section id="stage">
+      <canvas id="scene"></canvas>
+      <div class="floating-note" style="left: 6%; top: 9%;">20+ let truhlářské tradice · Vyrobeno v ČR</div>
+      <div class="floating-note small" style="left: 10%; top: 30%;">⛭ Žárový zinek</div>
+      <div class="floating-note small" style="left: 9%; bottom: 18%;">✓ Bezúdržbové provedení</div>
+      <div class="floating-note small" style="right: 24%; top: 24%;">🚚 Montáž zdarma</div>
+    </section>
+
+    <aside>
+      <div class="panel-head">3D Konfigurátor | <span>Dřevníky Kolář</span></div>
+
+      <div class="section">
+        <h3>Sekce 1 · Rozměry</h3>
+        <label>Design</label>
+        <select id="design" style="width:100%;padding:10px;border-radius:10px;border:1px solid #d6dce0;background:#f8fafb;">
+          <option value="frantisek" selected>František</option>
+          <option value="martin">Martin</option>
+          <option value="tomas">Tomáš</option>
+        </select>
+        <label>Šířka: <b id="lenVal">160</b> cm</label>
+        <input id="length" type="range" min="100" max="1000" value="160" />
+        <label>Hloubka: <b id="depVal">73</b> cm</label>
+        <input id="depth" type="range" min="73" max="170" value="73" />
+        <label>Výška: <b id="heiVal">220</b> cm</label>
+        <input id="height" type="range" min="100" max="250" value="220" />
+      </div>
+
+      <div class="section">
+        <h3>Sekce 2 · Materiál a barva</h3>
+        <div class="muted">Typ dřeva: <b>Smrk (standard)</b></div>
+        <div class="wood-preview" id="woodPreview"></div>
+        <div class="swatches" id="swatches"></div>
+      </div>
+
+      <div class="section">
+        <h3>Sekce 3 · Střecha</h3>
+        <div class="toggle" id="roofColor">
+          <button data-roof-color="anthracite" class="active">Antracit</button>
+          <button data-roof-color="brick">Cihlová</button>
+          <button data-roof-color="black">Černá</button>
+          <button data-roof-color="lightbrown">Světle hnědá</button>
+          <button data-roof-color="darkbrown">Tmavě hnědá</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Sekce 4 · Doplňky</h3>
+        <label class="checkbox"><input type="checkbox" id="fullWalls" /> Zadní stěna</label>
+        <label class="checkbox"><input type="checkbox" id="shelves" /> Polička</label>
+        <label class="checkbox"><input type="checkbox" id="gutter" /> Okap</label>
+      </div>
+
+      <div class="summary">
+        <div class="muted" style="color:#c7d3dc">Sekce 5 · Shrnutí</div>
+        <div>Zakázková výroba · žárově zinkovaná konstrukce</div>
+        <div class="price" id="priceVal">od 23 877 Kč</div>
+        <button class="cta">Odeslat poptávku / Objednat</button>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three@0.161.0';
+    import { OrbitControls } from 'https://esm.sh/three@0.161.0/examples/jsm/controls/OrbitControls.js';
+
+    const byId = (id) => document.getElementById(id);
+    const sceneCanvas = byId('scene');
+    const stage = byId('stage');
+    const length = byId('length');
+    const depth = byId('depth');
+    const height = byId('height');
+    const lenVal = byId('lenVal');
+    const depVal = byId('depVal');
+    const heiVal = byId('heiVal');
+    const swatches = byId('swatches');
+    const woodPreview = byId('woodPreview');
+    const roofColor = byId('roofColor');
+    const fullWalls = byId('fullWalls');
+    const shelves = byId('shelves');
+    const gutter = byId('gutter');
+    const design = byId('design');
+    const priceVal = byId('priceVal');
+
+    const renderer = new THREE.WebGLRenderer({ canvas: sceneCanvas, antialias: true });
+    renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+    renderer.shadowMap.enabled = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.06;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const world = new THREE.Scene();
+    world.background = new THREE.Color('#dfe7df');
+
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 150);
+    camera.position.set(7.6, 5.2, 7.2); // nadhled ~45°
+
+    const controls = new OrbitControls(camera, sceneCanvas);
+    controls.target.set(0, 1.5, 0);
+    controls.enableDamping = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 14;
+
+    world.add(new THREE.HemisphereLight(0xffffff, 0x6b7b66, 0.62));
+    const sun = new THREE.DirectionalLight(0xfff1d8, 1.65);
+    sun.position.set(8, 10, 4);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(4096, 4096);
+    sun.shadow.camera.left = -12;
+    sun.shadow.camera.right = 12;
+    sun.shadow.camera.top = 12;
+    sun.shadow.camera.bottom = -12;
+    world.add(sun);
+
+    const fill = new THREE.DirectionalLight(0xd7e6ff, 0.38);
+    fill.position.set(-6, 4, -5);
+    world.add(fill);
+    const rim = new THREE.DirectionalLight(0xffe7cf, 0.26);
+    rim.position.set(-3, 5, 8);
+    world.add(rim);
+
+    function createSpruceTexture(base = '#7f5a3d', contrast = 1) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1024;
+      const x = c.getContext('2d');
+      x.fillStyle = base;
+      x.fillRect(0, 0, c.width, c.height);
+      for (let i = 0; i < 2200; i++) {
+        x.strokeStyle = `rgba(${40 + Math.random()*30},${22 + Math.random()*20},${10 + Math.random()*16},${0.05*contrast + Math.random()*0.06})`;
+        x.lineWidth = 1 + Math.random() * 2.3;
+        const y = Math.random() * 1024;
+        x.beginPath();
+        x.moveTo(0, y);
+        x.bezierCurveTo(220, y - 18 + Math.random()*38, 720, y - 26 + Math.random()*52, 1024, y + Math.random()*8);
+        x.stroke();
+      }
+      for (let i = 0; i < 120; i++) {
+        x.strokeStyle = `rgba(35,20,12,${0.08*contrast})`;
+        x.lineWidth = 3 + Math.random() * 7;
+        const cx = Math.random() * 1024;
+        const cy = Math.random() * 1024;
+        x.beginPath();
+        x.ellipse(cx, cy, 26 + Math.random()*34, 8 + Math.random()*12, Math.random()*Math.PI, 0, Math.PI*2);
+        x.stroke();
+      }
+      const grad = x.createLinearGradient(0, 0, 1024, 0);
+      grad.addColorStop(0, 'rgba(255,255,255,0.05)');
+      grad.addColorStop(0.5, 'rgba(0,0,0,0.02)');
+      grad.addColorStop(1, 'rgba(255,255,255,0.035)');
+      x.fillStyle = grad;
+      x.fillRect(0, 0, 1024, 1024);
+      for (let i = 0; i < 18000; i++) {
+        const v = 90 + Math.random() * 90;
+        x.fillStyle = `rgba(${v},${v-10},${v-18},${0.015 + Math.random() * 0.02})`;
+        x.fillRect(Math.random() * 1024, Math.random() * 1024, 1, 1);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(2.5, 1.3);
+      return t;
+    }
+
+    function createWoodNormalTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1024;
+      const x = c.getContext('2d');
+      x.fillStyle = 'rgb(128,128,255)';
+      x.fillRect(0, 0, 1024, 1024);
+      for (let i = 0; i < 1600; i++) {
+        const alpha = 0.12 + Math.random() * 0.15;
+        x.strokeStyle = `rgba(${120 + Math.random()*16},${120 + Math.random()*16},255,${alpha})`;
+        x.lineWidth = 1 + Math.random() * 2;
+        const y = Math.random() * 1024;
+        x.beginPath();
+        x.moveTo(0, y);
+        x.bezierCurveTo(260, y + (Math.random() - 0.5) * 28, 780, y + (Math.random() - 0.5) * 34, 1024, y);
+        x.stroke();
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(2.5, 1.3);
+      return t;
+    }
+
+    function createRoofTexture(type = 'metal', tone = 'dark') {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1024;
+      const x = c.getContext('2d');
+      const base = tone === 'brick' ? '#8f5a48' : '#4c5358';
+      x.fillStyle = base;
+      x.fillRect(0, 0, 1024, 1024);
+      if (type === 'metal') {
+        for (let i = 0; i < 22; i++) {
+          const y = i * 48;
+          x.fillStyle = i % 2 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)';
+          x.fillRect(0, y, 1024, 32);
+        }
+      } else {
+        for (let y = 0; y < 1024; y += 70) {
+          for (let xPos = 0; xPos < 1024; xPos += 130) {
+            x.fillStyle = `rgba(0,0,0,${0.12 + Math.random() * 0.1})`;
+            x.fillRect(xPos, y, 110, 52);
+            x.fillStyle = `rgba(255,255,255,${0.05 + Math.random() * 0.08})`;
+            x.fillRect(xPos, y, 110, 8);
+          }
+        }
+      }
+      for (let i = 0; i < 18; i++) {
+        const y = i * 56 + 8;
+        x.fillStyle = 'rgba(255,255,255,0.035)';
+        x.fillRect(0, y, 1024, 2);
+        x.fillStyle = 'rgba(0,0,0,0.08)';
+        x.fillRect(0, y + 2, 1024, 2);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(3, 3);
+      return t;
+    }
+
+    function createZincTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 512;
+      const x = c.getContext('2d');
+      x.fillStyle = '#a5b1b5';
+      x.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 7000; i++) {
+        const g = 150 + Math.random() * 80;
+        x.fillStyle = `rgba(${g},${g},${g},${0.05 + Math.random() * 0.07})`;
+        x.fillRect(Math.random() * 512, Math.random() * 512, 1, 1);
+      }
+      for (let i = 0; i < 22; i++) {
+        const y = i * 24 + Math.random() * 2;
+        x.fillStyle = 'rgba(255,255,255,0.06)';
+        x.fillRect(0, y, 512, 1);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(1.2, 1.2);
+      return t;
+    }
+
+    function createPaverTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1024;
+      const x = c.getContext('2d');
+      x.fillStyle = '#9ca2a2';
+      x.fillRect(0, 0, 1024, 1024);
+      const blockW = 128;
+      const blockH = 88;
+      for (let y = 0; y < 1024; y += blockH) {
+        for (let xPos = 0; xPos < 1024; xPos += blockW) {
+          const nx = xPos + ((y / blockH) % 2 ? blockW/2 : 0);
+          x.fillStyle = `rgb(${150 + Math.random()*25},${150 + Math.random()*25},${148 + Math.random()*25})`;
+          x.fillRect(nx, y, blockW - 4, blockH - 4);
+        }
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(8, 8);
+      return t;
+    }
+
+    function createGrassTexture() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1024;
+      const x = c.getContext('2d');
+      x.fillStyle = '#6f9e5f';
+      x.fillRect(0, 0, 1024, 1024);
+      for (let i = 0; i < 12000; i++) {
+        x.fillStyle = `rgba(${66 + Math.random()*60},${95 + Math.random()*100},${38 + Math.random()*35},0.4)`;
+        x.fillRect(Math.random()*1024, Math.random()*1024, 2, 7);
+      }
+      const t = new THREE.CanvasTexture(c);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(10, 10);
+      return t;
+    }
+
+    const paver = new THREE.Mesh(
+      new THREE.PlaneGeometry(22, 22),
+      new THREE.MeshStandardMaterial({ map: createPaverTexture(), roughness: 0.9 })
+    );
+    paver.rotation.x = -Math.PI / 2;
+    paver.receiveShadow = true;
+    world.add(paver);
+
+    const grass = new THREE.Mesh(
+      new THREE.PlaneGeometry(60, 60),
+      new THREE.MeshStandardMaterial({ map: createGrassTexture(), roughness: 1 })
+    );
+    grass.rotation.x = -Math.PI / 2;
+    grass.position.y = -0.02;
+    world.add(grass);
+
+    const hedge = new THREE.Mesh(
+      new THREE.BoxGeometry(20, 2.6, 0.25),
+      new THREE.MeshStandardMaterial({ color: '#4f7d4a', roughness: 0.95 })
+    );
+    hedge.position.set(0, 1.3, -7);
+    world.add(hedge);
+
+    const shed = new THREE.Group();
+    world.add(shed);
+
+    const zincTex = createZincTexture();
+    const zincMat = new THREE.MeshStandardMaterial({ map: zincTex, color: '#a5b1b5', roughness: 0.46, metalness: 0.85 });
+    const roofPalette = { anthracite: '#4a4f55', brick: '#8b5240', black: '#222327', lightbrown: '#9b7c59', darkbrown: '#654638' };
+
+    const parts = {
+      frame: new THREE.Group(),
+      slats: new THREE.Group(),
+      roof: new THREE.Group(),
+      logs: new THREE.Group(),
+      shelves: new THREE.Group(),
+      accessory: new THREE.Group(),
+      gutter: new THREE.Group()
+    };
+    Object.values(parts).forEach(g => shed.add(g));
+
+    let woodMap = createSpruceTexture('#7d5a3e', 1);
+    const woodNormal = createWoodNormalTexture();
+    let woodMat = new THREE.MeshStandardMaterial({ map: woodMap, normalMap: woodNormal, roughness: 0.84, metalness: 0.03, normalScale: new THREE.Vector2(0.75, 0.75) });
+
+    function clearGroup(g) { while (g.children.length) g.remove(g.children[0]); }
+
+    function addBolts(x, y, z, parent) {
+      const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.008, 12), zincMat);
+      bolt.rotation.x = Math.PI / 2;
+      bolt.position.set(x, y, z);
+      parent.add(bolt);
+    }
+
+    function buildModel(cfg) {
+      Object.values(parts).forEach(clearGroup);
+
+      const L = cfg.length / 100;
+      const D = cfg.depth / 100;
+      const H = cfg.height / 100;
+      const frameW = 0.05;
+      const baseLift = 0.10;
+      const roofRise = Math.max(0.28, D * 0.34);
+      const roofOverhang = 0.12;
+      const floorMat = new THREE.MeshStandardMaterial({ color: '#4b3426', roughness: 0.84, metalness: 0.04 });
+
+      const designProfiles = {
+        frantisek: { bayScale: 1.0, slatGap: 0.045, slatH: 0.072, gableAccent: false, sidePattern: 'frantisek' },
+        martin: { bayScale: 1.2, slatGap: 0.038, slatH: 0.07, gableAccent: true, sidePattern: 'martin' },
+        tomas: { bayScale: 0.88, slatGap: 0.03, slatH: 0.065, gableAccent: false, sidePattern: 'tomas' }
+      };
+      const profile = designProfiles[cfg.design] ?? designProfiles.frantisek;
+      const bays = Math.max(1, Math.min(8, Math.round((L / 0.85) * profile.bayScale)));
+      const xLines = Array.from({ length: bays + 1 }, (_, i) => -L / 2 + (L / bays) * i);
+
+      // spodní ocelový rám
+      const railFront = new THREE.Mesh(new THREE.BoxGeometry(L + frameW, frameW, frameW), zincMat);
+      railFront.position.set(0, baseLift + frameW / 2, -D / 2);
+      parts.frame.add(railFront);
+      const railBack = railFront.clone();
+      railBack.position.z = D / 2;
+      parts.frame.add(railBack);
+      const railLeft = new THREE.Mesh(new THREE.BoxGeometry(frameW, frameW, D + frameW), zincMat);
+      railLeft.position.set(-L / 2, baseLift + frameW / 2, 0);
+      parts.frame.add(railLeft);
+      const railRight = railLeft.clone();
+      railRight.position.x = L / 2;
+      parts.frame.add(railRight);
+
+      // svislé sloupky + patky
+      xLines.forEach((xPos) => {
+        [-D / 2, D / 2].forEach((zPos) => {
+          const post = new THREE.Mesh(new THREE.BoxGeometry(frameW, H, frameW), zincMat);
+          post.position.set(xPos, baseLift + H / 2, zPos);
+          post.castShadow = true;
+          parts.frame.add(post);
+
+          const foot = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16),
+            new THREE.MeshStandardMaterial({ color: '#c3c6c6', roughness: 0.95 })
+          );
+          foot.position.set(xPos, 0.03, zPos);
+          foot.receiveShadow = true;
+          const leg = new THREE.Mesh(new THREE.BoxGeometry(0.024, baseLift, 0.024), zincMat);
+          leg.position.set(xPos, baseLift / 2, zPos);
+          leg.castShadow = true;
+          parts.frame.add(leg);
+
+          parts.frame.add(foot);
+        });
+      });
+
+      // horní nosníky
+      const topFront = new THREE.Mesh(new THREE.BoxGeometry(L + frameW, frameW, frameW), zincMat);
+      topFront.position.set(0, baseLift + H, -D / 2);
+      parts.frame.add(topFront);
+      const topBack = topFront.clone();
+      topBack.position.z = D / 2;
+      parts.frame.add(topBack);
+      const ridgeBeam = new THREE.Mesh(new THREE.BoxGeometry(L + 0.14, frameW, frameW), zincMat);
+      ridgeBeam.position.set(0, baseLift + H + roofRise - 0.03, 0);
+      parts.frame.add(ridgeBeam);
+
+      // zadní smrkové latě po jednotlivých polích
+      const slatGap = cfg.fullWalls ? 0.008 : profile.slatGap;
+      const slatH = cfg.fullWalls ? 0.102 : profile.slatH;
+      const step = slatH + slatGap;
+      const count = Math.floor((H - 0.22) / step);
+
+      for (let bay = 0; bay < bays; bay++) {
+        const bayMid = (xLines[bay] + xLines[bay + 1]) / 2;
+        const bayW = xLines[bay + 1] - xLines[bay];
+
+        for (let i = 0; i < count; i++) {
+          const y = baseLift + 0.2 + i * step;
+          const back = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.12, bayW - 0.08), slatH, 0.028), woodMat);
+          back.position.set(bayMid, y, D / 2 - 0.018);
+          back.castShadow = true;
+          parts.slats.add(back);
+          addBolts(bayMid - (bayW / 2) + 0.03, y, D / 2 - 0.01, parts.frame);
+          addBolts(bayMid + (bayW / 2) - 0.03, y, D / 2 - 0.01, parts.frame);
+        }
+
+        // tmavší podlaha v každém poli
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.15, bayW - 0.05), 0.032, D - 0.08), floorMat);
+        deck.position.set(bayMid, baseLift + 0.055, 0);
+        deck.receiveShadow = true;
+        parts.slats.add(deck);
+      }
+
+      // boční designy dle náčrtu (Martin: cik-cak na obou stranách, František: jen jedna strana, Tomáš: bez pásoviny)
+      const sideInnerDepth = D - 0.1;
+      const sideX = [-L / 2 + 0.016, L / 2 - 0.016];
+      const sideY0 = baseLift + 0.16;
+      const sideY1 = baseLift + H - 0.02;
+      const zigSegments = 4;
+      const zigStep = (sideY1 - sideY0) / zigSegments;
+      const zigMat = new THREE.MeshStandardMaterial({ color: '#b85a5a', roughness: 0.58, metalness: 0.42 });
+
+      function addHorizontalSlatColumn(xPos, zCenter, widthScale = 1) {
+        const depth = Math.max(0.12, sideInnerDepth * widthScale);
+        const zLeft = zCenter - depth / 2;
+        const zRight = zCenter + depth / 2;
+        for (let i = 0; i < count; i++) {
+          const y = baseLift + 0.2 + i * step;
+          const side = new THREE.Mesh(new THREE.BoxGeometry(0.028, slatH, depth), woodMat);
+          side.position.set(xPos, y, zCenter);
+          side.castShadow = true;
+          parts.slats.add(side);
+
+          if (i % 2 === 0) {
+            const boltOffset = xPos < 0 ? -0.013 : 0.013;
+            addBolts(xPos + boltOffset, y, zLeft + 0.014, parts.frame);
+            addBolts(xPos + boltOffset, y, zRight - 0.014, parts.frame);
+          }
+        }
+
+        const lastY = baseLift + 0.2 + Math.max(0, count - 1) * step;
+        const topGap = (sideY1 - 0.02) - (lastY + slatH / 2);
+        if (topGap > 0.01) {
+          const topSlatH = Math.min(0.11, topGap);
+          const topSlat = new THREE.Mesh(new THREE.BoxGeometry(0.028, topSlatH, depth), woodMat);
+          topSlat.position.set(xPos, lastY + slatH / 2 + topSlatH / 2 + 0.005, zCenter);
+          topSlat.castShadow = true;
+          parts.slats.add(topSlat);
+
+          const boltOffset = xPos < 0 ? -0.013 : 0.013;
+          addBolts(xPos + boltOffset, topSlat.position.y, zLeft + 0.014, parts.frame);
+          addBolts(xPos + boltOffset, topSlat.position.y, zRight - 0.014, parts.frame);
+        }
+      }
+
+      function addZigZagBrace(xPos, zCenter, mirrored = false, ampScale = 0.24) {
+        const stripeW = 0.012;
+        const stripeD = 0.028;
+        const zAmp = sideInnerDepth * ampScale;
+        for (let i = 0; i < zigSegments; i++) {
+          const yA = sideY0 + i * zigStep;
+          const yB = sideY0 + (i + 1) * zigStep;
+          const zigForward = mirrored ? i % 2 !== 0 : i % 2 === 0;
+          const zA = zigForward ? zCenter - zAmp : zCenter + zAmp;
+          const zB = zigForward ? zCenter + zAmp : zCenter - zAmp;
+          const dy = yB - yA;
+          const dz = zB - zA;
+          const len = Math.sqrt(dy * dy + dz * dz);
+          const brace = new THREE.Mesh(new THREE.BoxGeometry(stripeW, len, stripeD), zigMat);
+          brace.position.set(xPos + (xPos < 0 ? 0.008 : -0.008), (yA + yB) / 2, (zA + zB) / 2);
+          brace.rotation.x = -Math.atan2(dz, dy);
+          parts.frame.add(brace);
+        }
+      }
+
+      function addHarmonicaSidePosts(xPos, zCenter, ampScale = 0.24) {
+        const zAmp = sideInnerDepth * ampScale;
+        const postHeight = H - 0.02;
+        const postGeo = new THREE.BoxGeometry(0.024, postHeight, 0.024);
+        [zCenter - zAmp, zCenter + zAmp].forEach((zPos) => {
+          const post = new THREE.Mesh(postGeo, zincMat);
+          post.position.set(xPos, baseLift + postHeight / 2, zPos);
+          post.castShadow = true;
+          parts.frame.add(post);
+        });
+      }
+
+      sideX.forEach((xPos) => {
+        if (profile.sidePattern === 'martin') {
+          addHorizontalSlatColumn(xPos, 0, 0.54);
+          const rearHarmonica = -sideInnerDepth * 0.34;
+          const frontHarmonica = sideInnerDepth * 0.34;
+          const martinAmp = 0.14;
+          addZigZagBrace(xPos, rearHarmonica, false, martinAmp);
+          addHarmonicaSidePosts(xPos, rearHarmonica, martinAmp);
+          addZigZagBrace(xPos, frontHarmonica, true, martinAmp);
+          addHarmonicaSidePosts(xPos, frontHarmonica, martinAmp);
+        } else if (profile.sidePattern === 'frantisek') {
+          const slatCenter = xPos < 0 ? sideInnerDepth * 0.18 : -sideInnerDepth * 0.18;
+          addHorizontalSlatColumn(xPos, slatCenter, 0.46);
+          const harmonicaCenter = xPos < 0 ? -sideInnerDepth * 0.25 : sideInnerDepth * 0.25;
+          addZigZagBrace(xPos, harmonicaCenter);
+          addHarmonicaSidePosts(xPos, harmonicaCenter);
+        } else {
+          addHorizontalSlatColumn(xPos, -sideInnerDepth * 0.23, 0.42);
+          addHorizontalSlatColumn(xPos, sideInnerDepth * 0.23, 0.42);
+          const divider = new THREE.Mesh(new THREE.BoxGeometry(0.03, H - 0.2, 0.03), zincMat);
+          divider.position.set(xPos, baseLift + H / 2, 0);
+          parts.frame.add(divider);
+          for (let i = 0; i < 4; i++) {
+            addBolts(xPos + (xPos < 0 ? -0.012 : 0.012), sideY0 + i * ((sideY1 - sideY0) / 3), 0, parts.frame);
+          }
+        }
+      });
+
+      // sedlová střecha (bližší referenci)
+      const roofMat = new THREE.MeshStandardMaterial({
+        map: createRoofTexture('shingle', cfg.roofColor === 'anthracite' || cfg.roofColor === 'black' ? 'dark' : 'brick'),
+        color: roofPalette[cfg.roofColor],
+        roughness: 0.88,
+        metalness: 0.08
+      });
+      const roofHalfDepth = D / 2 + roofOverhang;
+      const roofLen = L + roofOverhang * 2;
+      const roofSlope = Math.atan2(roofRise, roofHalfDepth);
+      const roofPanelGeo = new THREE.BoxGeometry(roofLen, 0.02, roofHalfDepth + 0.03);
+
+      const roofLeft = new THREE.Mesh(roofPanelGeo, roofMat);
+      roofLeft.position.set(0, baseLift + H + roofRise / 2, -roofHalfDepth / 2 + 0.01);
+      roofLeft.rotation.x = -roofSlope;
+      roofLeft.castShadow = true;
+      parts.roof.add(roofLeft);
+
+      const roofRight = new THREE.Mesh(roofPanelGeo, roofMat);
+      roofRight.position.set(0, baseLift + H + roofRise / 2, roofHalfDepth / 2 - 0.01);
+      roofRight.rotation.x = roofSlope;
+      roofRight.castShadow = true;
+      parts.roof.add(roofRight);
+
+      // trojúhelníkové štíty
+      [-L / 2, L / 2].forEach((xPos) => {
+        const gableShape = new THREE.Shape();
+        gableShape.moveTo(-roofHalfDepth, baseLift + H);
+        gableShape.lineTo(0, baseLift + H + roofRise);
+        gableShape.lineTo(roofHalfDepth, baseLift + H);
+        gableShape.lineTo(-roofHalfDepth, baseLift + H);
+        const gable = new THREE.Mesh(
+          new THREE.ShapeGeometry(gableShape),
+          new THREE.MeshStandardMaterial({ color: '#9aa6ad', roughness: 0.7, metalness: 0.65, side: THREE.DoubleSide })
+        );
+        gable.position.set(xPos + (xPos < 0 ? 0.001 : -0.001), 0, 0);
+        gable.rotation.y = Math.PI / 2;
+        parts.roof.add(gable);
+
+        if (profile.gableAccent && xPos < 0) {
+          const accentA = new THREE.Mesh(new THREE.BoxGeometry(roofHalfDepth * 0.8, 0.02, 0.02), new THREE.MeshStandardMaterial({ color: '#2f3539', roughness: 0.8 }));
+          accentA.position.set(xPos + 0.01, baseLift + H + roofRise * 0.62, -0.02);
+          accentA.rotation.y = Math.PI / 2;
+          accentA.rotation.z = 0.42;
+          parts.roof.add(accentA);
+
+          const accentB = accentA.clone();
+          accentB.position.y = baseLift + H + roofRise * 0.8;
+          accentB.rotation.z = -0.42;
+          parts.roof.add(accentB);
+        }
+      });
+
+      if (cfg.shelves) {
+        for (let bay = 0; bay < bays; bay++) {
+          const bayMid = (xLines[bay] + xLines[bay + 1]) / 2;
+          const bayW = xLines[bay + 1] - xLines[bay];
+          const shelf = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.12, bayW - 0.1), 0.026, D * 0.35), woodMat);
+          shelf.position.set(bayMid, baseLift + 0.86, -D * 0.2);
+          shelf.castShadow = true;
+          parts.shelves.add(shelf);
+        }
+      }
+
+      const barkMat = new THREE.MeshStandardMaterial({ color: '#5a3c2a', roughness: 0.9, metalness: 0.02 });
+      const endMat = new THREE.MeshStandardMaterial({ map: woodMap, roughness: 0.8, metalness: 0.02 });
+      const addLog = (xPos, zPos, len, radius, rotY = 0) => {
+        const log = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, len, 18), barkMat);
+        log.rotation.z = Math.PI / 2;
+        log.rotation.y = rotY;
+        log.position.set(xPos, radius + 0.03, zPos);
+        log.castShadow = true;
+        parts.logs.add(log);
+
+        const endA = new THREE.Mesh(new THREE.CircleGeometry(radius * 0.96, 18), endMat);
+        endA.position.set(xPos - Math.cos(rotY) * (len / 2), radius + 0.03, zPos + Math.sin(rotY) * (len / 2));
+        endA.rotation.y = Math.PI / 2 + rotY;
+        parts.logs.add(endA);
+
+        const endB = endA.clone();
+        endB.position.set(xPos + Math.cos(rotY) * (len / 2), radius + 0.03, zPos - Math.sin(rotY) * (len / 2));
+        endB.rotation.y = -Math.PI / 2 + rotY;
+        parts.logs.add(endB);
+      };
+
+      addLog(-L * 0.32, -D * 0.72, 0.46, 0.075, 0.05);
+      addLog(-L * 0.18, -D * 0.72, 0.43, 0.07, -0.02);
+      addLog(-L * 0.25, -D * 0.6, 0.4, 0.065, 0.08);
+
+      // okap po přední hraně
+      if (cfg.gutter) {
+        const cover = new THREE.Group();
+        const cW = L + 0.2, cH = 0.08, cD = 0.08;
+        const gutterBody = new THREE.Mesh(new THREE.CylinderGeometry(cD, cD, cW, 16, 1, true, 0, Math.PI), zincMat);
+        gutterBody.rotation.z = Math.PI / 2;
+        gutterBody.position.set(0, baseLift + H + roofRise * 0.35, -D / 2 - 0.1);
+        cover.add(gutterBody);
+        const downpipe = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, H * 0.78, 14), zincMat);
+        downpipe.position.set(L / 2 + 0.05, baseLift + H * 0.4, -D / 2 - 0.12);
+        cover.add(downpipe);
+        parts.gutter.add(cover);
+      }
+    }
+
+    const stains = [
+      { key: 'afromorsia', label: 'Afromorsia', color: '#8f6f4b', contrast: 0.92 },
+      { key: 'borovice', label: 'Borovice', color: '#a27345', contrast: 0.95 },
+      { key: 'kastan', label: 'Kaštan', color: '#855436', contrast: 1.02 },
+      { key: 'orech-rustic', label: 'Ořech · rustic', color: '#5c3a2b', contrast: 1.15 },
+      { key: 'orech-svetly', label: 'Ořech · světlý', color: '#7a4f34', contrast: 1.05 },
+      { key: 'orech-tmavy', label: 'Ořech · tmavý', color: '#462b22', contrast: 1.2 }
+    ];
+
+    let stain = stains[3];
+    function updateWoodMaterial() {
+      woodMap = createSpruceTexture(stain.color, stain.contrast);
+      woodMat.map = woodMap;
+      woodMat.needsUpdate = true;
+      woodPreview.style.background = `url(${woodMap.image.toDataURL()}) center/cover`;
+    }
+    stains.forEach((s, i) => {
+      const w = document.createElement('button');
+      w.className = 'swatch' + (i === 3 ? ' active' : '');
+      w.innerHTML = `<div class="sample" style="background:${s.color}"></div>${s.label}`;
+      w.onclick = () => {
+        stain = s;
+        document.querySelectorAll('.swatch').forEach(n => n.classList.remove('active'));
+        w.classList.add('active');
+        updateWoodMaterial();
+        refresh();
+      };
+      swatches.appendChild(w);
+    });
+
+    const config = {
+      length: 160,
+      depth: 73,
+      height: 220,
+      roofColor: 'anthracite',
+      fullWalls: false,
+      shelves: false,
+      gutter: false,
+      design: 'frantisek'
+    };
+
+
+    function syncInputs() {
+      length.value = config.length; depth.value = config.depth; height.value = config.height;
+      lenVal.textContent = config.length; depVal.textContent = config.depth; heiVal.textContent = config.height;
+    }
+
+    function calcPrice() {
+      let price = 23877;
+      price += (config.length - 160) * 45;
+      price += (config.depth - 73) * 82;
+      price += (config.height - 220) * 36;
+      if (config.fullWalls) price += 2490;
+      if (config.shelves) price += 2087;
+      if (config.gutter) price += config.length * 20;
+      const roofExtra = { anthracite: 0, brick: 0, black: 0, lightbrown: 380, darkbrown: 520 };
+      price += roofExtra[config.roofColor] ?? 0;
+      return Math.round(price / 10) * 10;
+    }
+
+    function refresh() {
+      buildModel(config);
+      priceVal.textContent = `od ${calcPrice().toLocaleString('cs-CZ')} Kč`;
+    }
+
+
+    length.oninput = () => { config.length = Number(length.value); lenVal.textContent = config.length; refresh(); };
+    depth.oninput = () => { config.depth = Number(depth.value); depVal.textContent = config.depth; refresh(); };
+    height.oninput = () => { config.height = Number(height.value); heiVal.textContent = config.height; refresh(); };
+
+    design.oninput = () => { config.design = design.value; refresh(); };
+
+    roofColor.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+      roofColor.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      config.roofColor = btn.dataset.roofColor;
+      refresh();
+    });
+
+    fullWalls.oninput = () => { config.fullWalls = fullWalls.checked; refresh(); };
+    shelves.oninput = () => { config.shelves = shelves.checked; refresh(); };
+    gutter.oninput = () => { config.gutter = gutter.checked; refresh(); };
+
+    function resize() {
+      const w = stage.clientWidth;
+      const h = stage.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize);
+
+    updateWoodMaterial();
+    syncInputs();
+    refresh();
+    resize();
+
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      renderer.render(world, camera);
+    });
+  </script>
+</body>
+</html>
