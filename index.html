@@ -115,6 +115,7 @@
       gap: 8px;
       margin-bottom: 10px;
     }
+    .preset-grid button { font-size: 11px; padding: 10px 6px; }
     button {
       border: 1px solid var(--ui-line);
       border-radius: 10px;
@@ -167,7 +168,8 @@
       font-weight: 700;
     }
 
-    .toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .toggle { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+    .toggle.triple { grid-template-columns: 1fr; }
     .checkbox { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-size: 13px; }
 
     .summary {
@@ -212,49 +214,58 @@
           <option value="martin">Martin</option>
           <option value="tomas">Tomáš</option>
         </select>
-        <label>Šířka: <b id="lenVal">160</b> cm</label>
-        <input id="length" type="range" min="100" max="1000" value="160" />
+        <div class="preset-grid" id="presets" style="margin-top:10px;">
+          <button data-preset="kompakt">Kompakt (100x73)</button>
+          <button data-preset="klasik" class="active">Klasik (160x73)</button>
+          <button data-preset="l">L (160x109)</button>
+          <button data-preset="xxl">XXL (260x109)</button>
+        </div>
+        <label>Délka: <b id="lenVal">160</b> cm</label>
+        <input id="length" type="range" min="100" max="260" value="160" />
         <label>Hloubka: <b id="depVal">73</b> cm</label>
-        <input id="depth" type="range" min="73" max="170" value="73" />
+        <input id="depth" type="range" min="73" max="109" value="73" />
         <label>Výška: <b id="heiVal">220</b> cm</label>
-        <input id="height" type="range" min="100" max="250" value="220" />
+        <input id="height" type="range" min="180" max="250" value="220" />
       </div>
 
       <div class="section">
         <h3>Sekce 2 · Materiál a barva</h3>
-        <div class="muted">Typ dřeva: <b>Smrk (standard)</b></div>
+        <div class="row" style="margin-bottom:8px;"><div class="muted">Typ dřeva</div><select id="woodType" style="padding:6px;border-radius:8px;border:1px solid #d6dce0;"><option selected>Smrk (standard)</option></select></div>
         <div class="wood-preview" id="woodPreview"></div>
         <div class="swatches" id="swatches"></div>
       </div>
 
       <div class="section">
         <h3>Sekce 3 · Střecha</h3>
-        <div class="muted" style="margin-bottom:8px">Typ střechy</div>
-        <div class="toggle" id="roofStyle" style="margin-bottom:10px">
+        <div class="muted" style="margin-bottom:8px">Typ krytiny</div>
+        <div class="toggle" id="roofType" style="margin-bottom:10px">
+          <button data-roof-type="metal" class="active">Plech</button>
+          <button data-roof-type="shingle">Šindel</button>
+        </div>
+        <div class="toggle triple" id="roofStyle" style="margin-bottom:10px">
           <button data-roof-style="gable" class="active">Sedlová</button>
           <button data-roof-style="mono-back">Rovná · spád dozadu</button>
           <button data-roof-style="mono-front">Rovná · spád dopředu</button>
         </div>
         <div class="toggle" id="roofColor">
           <button data-roof-color="anthracite" class="active">Antracit</button>
-          <button data-roof-color="brick">Cihlová</button>
+          <button data-roof-color="gray">Šedá</button>
           <button data-roof-color="black">Černá</button>
-          <button data-roof-color="lightbrown">Světle hnědá</button>
-          <button data-roof-color="darkbrown">Tmavě hnědá</button>
+          <button data-roof-color="brick">Cihlová</button>
         </div>
       </div>
 
       <div class="section">
         <h3>Sekce 4 · Doplňky</h3>
-        <label class="checkbox"><input type="checkbox" id="fullWalls" /> Zadní stěna</label>
-        <label class="checkbox"><input type="checkbox" id="shelves" /> Polička</label>
-        <label class="checkbox"><input type="checkbox" id="gutter" /> Okap</label>
+        <label class="checkbox"><input type="checkbox" id="fullWalls" /> Boční stěny (plné)</label>
+        <label class="checkbox"><input type="checkbox" id="shelves" /> Vnitřní police</label>
+        <label class="checkbox"><input type="checkbox" id="gutter" /> Zahradní kryt na klimatizaci</label>
       </div>
 
       <div class="summary">
         <div class="muted" style="color:#c7d3dc">Sekce 5 · Shrnutí</div>
         <div>Zakázková výroba · žárově zinkovaná konstrukce</div>
-        <div class="price" id="priceVal">od 23 877 Kč</div>
+        <div class="price" id="priceVal">od 23 171 Kč</div>
         <button class="cta">Odeslat poptávku / Objednat</button>
       </div>
     </aside>
@@ -276,6 +287,7 @@
     const swatches = byId('swatches');
     const woodPreview = byId('woodPreview');
     const roofColor = byId('roofColor');
+    const roofType = byId('roofType');
     const roofStyle = byId('roofStyle');
     const fullWalls = byId('fullWalls');
     const shelves = byId('shelves');
@@ -506,7 +518,7 @@
 
     const zincTex = createZincTexture();
     const zincMat = new THREE.MeshStandardMaterial({ map: zincTex, color: '#a5b1b5', roughness: 0.46, metalness: 0.85 });
-    const roofPalette = { anthracite: '#4a4f55', brick: '#8b5240', black: '#222327', lightbrown: '#9b7c59', darkbrown: '#654638' };
+    const roofPalette = { anthracite: '#4a4f55', gray: '#79828a', black: '#222327', brick: '#8b5240' };
 
     const parts = {
       frame: new THREE.Group(),
@@ -740,7 +752,7 @@
 
       // střecha: sedlová / rovná se spádem
       const roofMat = new THREE.MeshStandardMaterial({
-        map: createRoofTexture('shingle', cfg.roofColor === 'anthracite' || cfg.roofColor === 'black' ? 'dark' : 'brick'),
+        map: createRoofTexture(cfg.roofType, cfg.roofColor === 'anthracite' || cfg.roofColor === 'black' || cfg.roofColor === 'gray' ? 'dark' : 'brick'),
         color: roofPalette[cfg.roofColor],
         roughness: 0.88,
         metalness: 0.08
@@ -855,15 +867,13 @@
     }
 
     const stains = [
-      { key: 'afromorsia', label: 'Afromorsia', color: '#8f6f4b', contrast: 0.92 },
-      { key: 'borovice', label: 'Borovice', color: '#a27345', contrast: 0.95 },
-      { key: 'kastan', label: 'Kaštan', color: '#855436', contrast: 1.02 },
-      { key: 'orech-rustic', label: 'Ořech · rustic', color: '#5c3a2b', contrast: 1.15 },
-      { key: 'orech-svetly', label: 'Ořech · světlý', color: '#7a4f34', contrast: 1.05 },
-      { key: 'orech-tmavy', label: 'Ořech · tmavý', color: '#462b22', contrast: 1.2 }
+      { key: 'natural', label: 'Přírodní', color: '#8a6746', contrast: 0.95 },
+      { key: 'orech', label: 'Ořech', color: '#5a3b2a', contrast: 1.12 },
+      { key: 'teak', label: 'Teak', color: '#90613f', contrast: 1.03 },
+      { key: 'gray', label: 'Šedá', color: '#6d6762', contrast: 0.92 }
     ];
 
-    let stain = stains[3];
+    let stain = stains[1];
     function updateWoodMaterial() {
       woodMap = createSpruceTexture(stain.color, stain.contrast);
       woodMat.map = woodMap;
@@ -872,7 +882,7 @@
     }
     stains.forEach((s, i) => {
       const w = document.createElement('button');
-      w.className = 'swatch' + (i === 3 ? ' active' : '');
+      w.className = 'swatch' + (i === 1 ? ' active' : '');
       w.innerHTML = `<div class="sample" style="background:${s.color}"></div>${s.label}`;
       w.onclick = () => {
         stain = s;
@@ -889,6 +899,7 @@
       depth: 73,
       height: 220,
       roofColor: 'anthracite',
+      roofType: 'metal',
       roofStyle: 'gable',
       fullWalls: false,
       shelves: false,
@@ -903,15 +914,16 @@
     }
 
     function calcPrice() {
-      let price = 23877;
+      let price = 23171;
       price += (config.length - 160) * 45;
       price += (config.depth - 73) * 82;
       price += (config.height - 220) * 36;
       if (config.fullWalls) price += 2490;
       if (config.shelves) price += 2087;
       if (config.gutter) price += config.length * 20;
-      const roofExtra = { anthracite: 0, brick: 0, black: 0, lightbrown: 380, darkbrown: 520 };
+      const roofExtra = { anthracite: 0, gray: 0, black: 220, brick: 180 };
       price += roofExtra[config.roofColor] ?? 0;
+      if (config.roofType === 'shingle') price += 680;
       if (config.roofStyle !== 'gable') price += 950;
       return Math.round(price / 10) * 10;
     }
@@ -927,6 +939,31 @@
     height.oninput = () => { config.height = Number(height.value); heiVal.textContent = config.height; refresh(); };
 
     design.oninput = () => { config.design = design.value; refresh(); };
+
+    const presets = {
+      kompakt: { length: 100, depth: 73 },
+      klasik: { length: 160, depth: 73 },
+      l: { length: 160, depth: 109 },
+      xxl: { length: 260, depth: 109 }
+    };
+
+    byId('presets').querySelectorAll('button').forEach(btn => btn.onclick = () => {
+      byId('presets').querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const p = presets[btn.dataset.preset];
+      if (!p) return;
+      config.length = p.length;
+      config.depth = p.depth;
+      syncInputs();
+      refresh();
+    });
+
+    roofType.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+      roofType.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      config.roofType = btn.dataset.roofType;
+      refresh();
+    });
 
     roofStyle.querySelectorAll('button').forEach(btn => btn.onclick = () => {
       roofStyle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
