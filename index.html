@@ -685,7 +685,7 @@
       const sideX = [-L / 2 + 0.016, L / 2 - 0.016];
       const sideY0 = baseLift + 0.16;
       const sideY1 = baseLift + H - 0.02;
-      const zigSegments = 4;
+      const zigSegments = 8;
       const zigStep = (sideY1 - sideY0) / zigSegments;
       const zigMat = new THREE.MeshStandardMaterial({ color: '#b85a5a', roughness: 0.58, metalness: 0.42 });
 
@@ -722,16 +722,17 @@
         }
       }
 
-      function addZigZagBrace(xPos, zCenter, mirrored = false, ampScale = 0.24) {
+      function addZigZagBrace(xPos, zCenter, startTowardSign = 1, ampScale = 0.24) {
         const stripeW = 0.012;
         const stripeD = 0.028;
         const zAmp = sideInnerDepth * ampScale;
+        const zNear = zCenter + Math.sign(startTowardSign || 1) * zAmp;
+        const zFar = zCenter - Math.sign(startTowardSign || 1) * zAmp;
         for (let i = 0; i < zigSegments; i++) {
           const yA = sideY0 + i * zigStep;
           const yB = sideY0 + (i + 1) * zigStep;
-          const zigForward = mirrored ? i % 2 !== 0 : i % 2 === 0;
-          const zA = zigForward ? zCenter - zAmp : zCenter + zAmp;
-          const zB = zigForward ? zCenter + zAmp : zCenter - zAmp;
+          const zA = i % 2 === 0 ? zNear : zFar;
+          const zB = i % 2 === 0 ? zFar : zNear;
           const dy = yB - yA;
           const dz = zB - zA;
           const len = Math.sqrt(dy * dy + dz * dz);
@@ -760,15 +761,16 @@
           const rearHarmonica = -sideInnerDepth * 0.34;
           const frontHarmonica = sideInnerDepth * 0.34;
           const martinAmp = 0.14;
-          addZigZagBrace(xPos, rearHarmonica, false, martinAmp);
+          addZigZagBrace(xPos, rearHarmonica, 1, martinAmp);
           addHarmonicaSidePosts(xPos, rearHarmonica, martinAmp);
-          addZigZagBrace(xPos, frontHarmonica, true, martinAmp);
+          addZigZagBrace(xPos, frontHarmonica, -1, martinAmp);
           addHarmonicaSidePosts(xPos, frontHarmonica, martinAmp);
         } else if (profile.sidePattern === 'frantisek') {
           const slatCenter = xPos < 0 ? sideInnerDepth * 0.18 : -sideInnerDepth * 0.18;
           addHorizontalSlatColumn(xPos, slatCenter, 0.46);
           const harmonicaCenter = xPos < 0 ? -sideInnerDepth * 0.25 : sideInnerDepth * 0.25;
-          addZigZagBrace(xPos, harmonicaCenter);
+          const startTowardSlat = Math.sign(slatCenter - harmonicaCenter) || 1;
+          addZigZagBrace(xPos, harmonicaCenter, startTowardSlat);
           addHarmonicaSidePosts(xPos, harmonicaCenter);
         } else {
           addHorizontalSlatColumn(xPos, -sideInnerDepth * 0.23, 0.42);
