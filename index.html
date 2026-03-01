@@ -469,10 +469,10 @@
       const c = document.createElement('canvas');
       c.width = c.height = 512;
       const x = c.getContext('2d');
-      x.fillStyle = '#a5b1b5';
+      x.fillStyle = '#c8d0d4';
       x.fillRect(0, 0, 512, 512);
       for (let i = 0; i < 7000; i++) {
-        const g = 150 + Math.random() * 80;
+        const g = 178 + Math.random() * 70;
         x.fillStyle = `rgba(${g},${g},${g},${0.05 + Math.random() * 0.07})`;
         x.fillRect(Math.random() * 512, Math.random() * 512, 1, 1);
       }
@@ -598,7 +598,7 @@
     world.add(shed);
 
     const zincTex = createZincTexture();
-    const zincMat = new THREE.MeshStandardMaterial({ map: zincTex, color: '#a5b1b5', roughness: 0.46, metalness: 0.85 });
+    const zincMat = new THREE.MeshStandardMaterial({ map: zincTex, color: '#cfd6da', roughness: 0.34, metalness: 0.95 });
     const roofPalette = { anthracite: '#4a4f55', gray: '#79828a', black: '#222327', brick: '#8b5240' };
 
     const parts = {
@@ -669,18 +669,10 @@
           post.castShadow = true;
           parts.frame.add(post);
 
-          const foot = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.10, 0.10, 0.06, 16),
-            new THREE.MeshStandardMaterial({ color: '#c3c6c6', roughness: 0.95 })
-          );
-          foot.position.set(xPos, 0.03, zPos);
-          foot.receiveShadow = true;
           const leg = new THREE.Mesh(new THREE.BoxGeometry(0.024, baseLift, 0.024), zincMat);
           leg.position.set(xPos, baseLift / 2, zPos);
           leg.castShadow = true;
           parts.frame.add(leg);
-
-          parts.frame.add(foot);
         });
       });
 
