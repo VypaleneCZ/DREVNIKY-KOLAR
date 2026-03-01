@@ -333,9 +333,11 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.06;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const world = new THREE.Scene();
-    world.background = new THREE.Color('#dfe7df');
+    world.background = new THREE.Color('#d8e5ef');
+    world.fog = new THREE.Fog('#d7e0d7', 14, 48);
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 150);
     camera.position.set(7.6, 5.2, 7.2); // nadhled ~45°
@@ -346,8 +348,8 @@
     controls.minDistance = 4;
     controls.maxDistance = 14;
 
-    world.add(new THREE.HemisphereLight(0xffffff, 0x6b7b66, 0.62));
-    const sun = new THREE.DirectionalLight(0xfff1d8, 1.65);
+    world.add(new THREE.HemisphereLight(0xf7fbff, 0x65805f, 0.72));
+    const sun = new THREE.DirectionalLight(0xfff0d2, 1.85);
     sun.position.set(8, 10, 4);
     sun.castShadow = true;
     sun.shadow.mapSize.set(4096, 4096);
@@ -357,10 +359,10 @@
     sun.shadow.camera.bottom = -12;
     world.add(sun);
 
-    const fill = new THREE.DirectionalLight(0xd7e6ff, 0.38);
+    const fill = new THREE.DirectionalLight(0xcfe2ff, 0.45);
     fill.position.set(-6, 4, -5);
     world.add(fill);
-    const rim = new THREE.DirectionalLight(0xffe7cf, 0.26);
+    const rim = new THREE.DirectionalLight(0xffe2c2, 0.34);
     rim.position.set(-3, 5, 8);
     world.add(rim);
 
@@ -489,16 +491,28 @@
       const c = document.createElement('canvas');
       c.width = c.height = 1024;
       const x = c.getContext('2d');
-      x.fillStyle = '#9ca2a2';
+      const bg = x.createLinearGradient(0, 0, 0, 1024);
+      bg.addColorStop(0, '#b8b2aa');
+      bg.addColorStop(1, '#9f9a93');
+      x.fillStyle = bg;
       x.fillRect(0, 0, 1024, 1024);
-      const blockW = 128;
-      const blockH = 88;
-      for (let y = 0; y < 1024; y += blockH) {
-        for (let xPos = 0; xPos < 1024; xPos += blockW) {
+      const blockW = 124;
+      const blockH = 86;
+      for (let y = 0; y < 1024 + blockH; y += blockH) {
+        for (let xPos = -blockW; xPos < 1024 + blockW; xPos += blockW) {
           const nx = xPos + ((y / blockH) % 2 ? blockW/2 : 0);
-          x.fillStyle = `rgb(${150 + Math.random()*25},${150 + Math.random()*25},${148 + Math.random()*25})`;
+          const shade = 145 + Math.random() * 36;
+          x.fillStyle = `rgb(${shade + 6},${shade + 2},${shade - 3})`;
           x.fillRect(nx, y, blockW - 4, blockH - 4);
+          x.strokeStyle = 'rgba(60,55,50,0.22)';
+          x.lineWidth = 2;
+          x.strokeRect(nx + 1, y + 1, blockW - 6, blockH - 6);
         }
+      }
+      for (let i = 0; i < 24000; i++) {
+        const g = 90 + Math.random() * 120;
+        x.fillStyle = `rgba(${g},${g-8},${g-15},${0.03 + Math.random() * 0.05})`;
+        x.fillRect(Math.random() * 1024, Math.random() * 1024, 1, 1);
       }
       const t = new THREE.CanvasTexture(c);
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -510,40 +524,75 @@
       const c = document.createElement('canvas');
       c.width = c.height = 1024;
       const x = c.getContext('2d');
-      x.fillStyle = '#6f9e5f';
+      const g = x.createLinearGradient(0, 0, 0, 1024);
+      g.addColorStop(0, '#5f8f52');
+      g.addColorStop(1, '#4d7743');
+      x.fillStyle = g;
       x.fillRect(0, 0, 1024, 1024);
-      for (let i = 0; i < 12000; i++) {
-        x.fillStyle = `rgba(${66 + Math.random()*60},${95 + Math.random()*100},${38 + Math.random()*35},0.4)`;
-        x.fillRect(Math.random()*1024, Math.random()*1024, 2, 7);
+      for (let i = 0; i < 24000; i++) {
+        const h = 72 + Math.random() * 58;
+        x.fillStyle = `rgba(${40 + Math.random()*40},${h + 50},${32 + Math.random()*28},${0.22 + Math.random()*0.3})`;
+        const w = 1 + Math.random() * 2;
+        const l = 4 + Math.random() * 10;
+        x.fillRect(Math.random()*1024, Math.random()*1024, w, l);
+      }
+      for (let i = 0; i < 650; i++) {
+        x.fillStyle = `rgba(${180 + Math.random()*40},${150 + Math.random()*40},${90 + Math.random()*30},0.18)`;
+        x.beginPath();
+        x.arc(Math.random()*1024, Math.random()*1024, 1 + Math.random()*2, 0, Math.PI*2);
+        x.fill();
       }
       const t = new THREE.CanvasTexture(c);
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      t.repeat.set(10, 10);
+      t.repeat.set(12, 12);
       return t;
     }
 
     const paver = new THREE.Mesh(
-      new THREE.PlaneGeometry(22, 22),
-      new THREE.MeshStandardMaterial({ map: createPaverTexture(), roughness: 0.9 })
+      new THREE.PlaneGeometry(24, 24),
+      new THREE.MeshStandardMaterial({ map: createPaverTexture(), roughness: 0.92, metalness: 0.03 })
     );
     paver.rotation.x = -Math.PI / 2;
     paver.receiveShadow = true;
     world.add(paver);
 
     const grass = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 60),
+      new THREE.PlaneGeometry(82, 82),
       new THREE.MeshStandardMaterial({ map: createGrassTexture(), roughness: 1 })
     );
     grass.rotation.x = -Math.PI / 2;
-    grass.position.y = -0.02;
+    grass.position.y = -0.03;
     world.add(grass);
 
-    const hedge = new THREE.Mesh(
-      new THREE.BoxGeometry(20, 2.6, 0.25),
-      new THREE.MeshStandardMaterial({ color: '#4f7d4a', roughness: 0.95 })
-    );
-    hedge.position.set(0, 1.3, -7);
-    world.add(hedge);
+    const hedgeGroup = new THREE.Group();
+    const hedgeMat = new THREE.MeshStandardMaterial({ color: '#3f6f3d', roughness: 0.95 });
+    const hedgeBack = new THREE.Mesh(new THREE.BoxGeometry(26, 2.8, 0.45), hedgeMat);
+    hedgeBack.position.set(0, 1.4, -8.8);
+    hedgeGroup.add(hedgeBack);
+    const hedgeLeft = new THREE.Mesh(new THREE.BoxGeometry(0.45, 2.5, 16), hedgeMat);
+    hedgeLeft.position.set(-12.2, 1.25, -1.8);
+    hedgeGroup.add(hedgeLeft);
+    world.add(hedgeGroup);
+
+    function addTree(xPos, zPos, crownScale = 1) {
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.16, 1.2, 10),
+        new THREE.MeshStandardMaterial({ color: '#6b4b34', roughness: 0.9 })
+      );
+      trunk.position.set(xPos, 0.6, zPos);
+      trunk.castShadow = true;
+      world.add(trunk);
+      const crown = new THREE.Mesh(
+        new THREE.SphereGeometry(0.95 * crownScale, 18, 14),
+        new THREE.MeshStandardMaterial({ color: '#4c7d44', roughness: 0.95 })
+      );
+      crown.position.set(xPos, 1.75, zPos);
+      crown.castShadow = true;
+      world.add(crown);
+    }
+    addTree(-8.5, -9.5, 1.1);
+    addTree(8.8, -10.3, 1.0);
+    addTree(11.2, -6.8, 0.88);
 
     const shed = new THREE.Group();
     world.add(shed);
@@ -565,7 +614,7 @@
 
     let woodMap = createSpruceTexture('#7d5a3e', 1);
     const woodNormal = createWoodNormalTexture();
-    let woodMat = new THREE.MeshStandardMaterial({ map: woodMap, normalMap: woodNormal, roughness: 0.84, metalness: 0.03, normalScale: new THREE.Vector2(0.75, 0.75) });
+    let woodMat = new THREE.MeshStandardMaterial({ map: woodMap, normalMap: woodNormal, roughness: 0.72, metalness: 0.02, normalScale: new THREE.Vector2(1.0, 1.0) });
 
     function clearGroup(g) { while (g.children.length) g.remove(g.children[0]); }
 
@@ -788,8 +837,8 @@
       const roofMat = new THREE.MeshStandardMaterial({
         map: createRoofTexture(cfg.roofType, cfg.roofColor === 'anthracite' || cfg.roofColor === 'black' || cfg.roofColor === 'gray' ? 'dark' : 'brick'),
         color: roofPalette[cfg.roofColor],
-        roughness: 0.88,
-        metalness: 0.08
+        roughness: cfg.roofType === 'metal' ? 0.55 : 0.86,
+        metalness: cfg.roofType === 'metal' ? 0.3 : 0.08
       });
       const roofHalfDepth = D / 2 + roofOverhang;
       const roofLen = L + roofOverhang * 2;
